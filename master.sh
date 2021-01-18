@@ -42,4 +42,4 @@ echo "********** $KVMSG"
 echo "********** $KVMSG"
 kubectl apply -f /tmp/calico-defined.yaml
 rm /tmp/calico-default.yaml /tmp/calico-defined.yaml
-echo KUBELET_EXTRA_ARGS=--node-ip=192.168.1.24$NODE > /etc/default/kubelet
+echo KUBELET_EXTRA_ARGS=--node-ip=192.168.1.24$NODE > /etc/default/kubelet 
