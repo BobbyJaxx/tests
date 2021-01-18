@@ -3,43 +3,60 @@
 # type: kubeadm-calico-full-cluster-bootstrap
 # created by Artur Scheiner - artur.scheiner@gmail.com
 
+#variable definitions
 KVMSG=$1
-NODE=$2
-POD_CIDR=$3
-API_ADV_ADDRESS=$4
 
 echo "********** $KVMSG"
 echo "********** $KVMSG"
-echo "********** $KVMSG ->> Initializing Kubernetes Cluster"
-echo "********** $KVMSG ->> Master Node $NODE"
-echo "********** $KVMSG ->> kv-master-$NODE"
-kubeadm init --pod-network-cidr $POD_CIDR --apiserver-advertise-address $API_ADV_ADDRESS | tee /vagrant/kubeadm-init.out
+echo "********** $KVMSG ->> Adding Kubernetes and Docker-CE Repo"
+echo "********** $KVMSG"
+echo "********** $KVMSG"
+### Install packages to allow apt to use a repository over HTTPS
+apt-get update && apt-get install apt-transport-https ca-certificates curl software-properties-common
+
+### Add Kubernetes GPG key
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+
+### Kubernetes Repo
+echo "deb  http://apt.kubernetes.io/  kubernetes-xenial  main" > /etc/apt/sources.list.d/kubernetes.list
+
+### Add Docker official GPG key
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+
+### Add Docker apt repository.
+add-apt-repository \
+  "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) \
+  stable"
 
 echo "********** $KVMSG"
 echo "********** $KVMSG"
-echo "********** $KVMSG ->> Configuring Kubernetes Cluster Environment"
+echo "********** $KVMSG ->> Updating Repositories"
 echo "********** $KVMSG"
 echo "********** $KVMSG"
-mkdir -p /home/vagrant/.kube
-cp -i /etc/kubernetes/admin.conf /home/vagrant/.kube/config
-chown vagrant:vagrant /home/vagrant/.kube/config
-mkdir -p /root/.kube
-cp -i /etc/kubernetes/admin.conf /root/.kube/config
+apt-get update
 
-#Configure the Calico Network Plugin
 echo "********** $KVMSG"
 echo "********** $KVMSG"
-echo "********** $KVMSG ->> Configuring Kubernetes Cluster Calico Networking"
-echo "********** $KVMSG ->> Downloading Calico YAML File"
+echo "********** $KVMSG ->> Installing Required & Recommended Packages"
 echo "********** $KVMSG"
 echo "********** $KVMSG"
-wget -q https://docs.projectcalico.org/v3.10/manifests/calico.yaml -O /tmp/calico-default.yaml
-#wget -q https://bit.ly/kv-lab-k8s-calico-yaml -O /tmp/calico-default.yaml
-sed "s+192.168.0.0/16+$POD_CIDR+g" /tmp/calico-default.yaml > /tmp/calico-defined.yaml
+apt-get install -y avahi-daemon libnss-mdns traceroute htop httpie bash-completion docker-ce=5:18.09.1~3-0~ubuntu-xenial kubeadm kubelet kubectl
 
-echo "********** $KVMSG ->> Applying Calico YAML File"
-echo "********** $KVMSG"
-echo "********** $KVMSG"
-kubectl apply -f /tmp/calico-defined.yaml
-rm /tmp/calico-default.yaml /tmp/calico-defined.yaml
-echo KUBELET_EXTRA_ARGS=--node-ip=192.168.1.24$NODE > /etc/default/kubelet
+# Setup Docker daemon.
+cat > /etc/docker/daemon.json <<EOF
+{
+  "exec-opts": ["native.cgroupdriver=systemd"],
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "100m"
+  },
+  "storage-driver": "overlay2"
+}
+EOF
+
+mkdir -p /etc/systemd/system/docker.service.d
+
+# Restart docker.
+systemctl daemon-reload
+systemctl restart docker	
