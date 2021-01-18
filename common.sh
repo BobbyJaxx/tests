@@ -20,7 +20,7 @@ curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 ### Kubernetes Repo
 echo "deb  http://apt.kubernetes.io/  kubernetes-xenial  main" > /etc/apt/sources.list.d/kubernetes.list
 
-### Add Docker official GPG key
+### Add Dockerâ€™s official GPG key
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
 
 ### Add Docker apt repository.
